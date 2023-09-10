@@ -2,18 +2,23 @@ package com.websarva.wings.android.cameraintentsar;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.Matrix;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.View;
 import android.widget.Button;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_IMAGE_CAPTURE = 1;
-    private Bitmap imageBitmap;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,8 +35,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void dispatchTakePictureIntent() {
+        // カメラアプリを起動して写真を撮影するインテントを作成
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            // インテントを実行して写真を撮影
             startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
         }
     }
@@ -42,23 +49,20 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
             Bundle extras = data.getExtras();
             if (extras != null) {
-                imageBitmap = (Bitmap) extras.get("data");
+                // 撮影された写真のBitmapを取得
+                Bitmap imageBitmap = (Bitmap) extras.get("data");
                 if (imageBitmap != null) {
-                    // 画像を90度回転させる
-                    imageBitmap = rotateBitmap(imageBitmap, 270);
-
-                    // SubActivity に画像を渡す
+                    // SubActivityに画像を渡す
                     Intent intent = new Intent(this, SubActivity.class);
-                    intent.putExtra("imageBitmap", imageBitmap); // 画像
+                    // 画像をバイト配列に変換して渡す
+                    ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                    imageBitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+                    byte[] byteArray = stream.toByteArray();
+                    intent.putExtra("imageByteArray", byteArray);
                     startActivity(intent);
                 }
             }
         }
     }
-
-    private Bitmap rotateBitmap(Bitmap source, float angle) {
-        Matrix matrix = new Matrix();
-        matrix.postRotate(angle);
-        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
-    }
 }
+

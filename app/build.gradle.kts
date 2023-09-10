@@ -5,6 +5,7 @@ plugins {
 android {
     namespace = "com.websarva.wings.android.cameraintentsar"
     compileSdk = 33
+    useLibrary("org.apache.http.legacy")
 
     defaultConfig {
         applicationId = "com.websarva.wings.android.cameraintentsar"
@@ -40,5 +41,6 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 
+    implementation("com.squareup.okhttp3:okhttp:4.9.0")
 
 }
