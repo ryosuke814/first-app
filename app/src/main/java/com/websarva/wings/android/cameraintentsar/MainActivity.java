@@ -2,28 +2,40 @@ package com.websarva.wings.android.cameraintentsar;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Matrix;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_IMAGE_CAPTURE = 1;
+    private EditText[] timeInputs = new EditText[7];
+    private String imagePath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
+        // EditTextフィールドを取得
+        timeInputs[0] = findViewById(R.id.time1);
+        timeInputs[1] = findViewById(R.id.time2);
+        timeInputs[2] = findViewById(R.id.time3);
+        timeInputs[3] = findViewById(R.id.time4);
+        timeInputs[4] = findViewById(R.id.time5);
+        timeInputs[5] = findViewById(R.id.time6);
+        timeInputs[6] = findViewById(R.id.time7);
 
         Button cameraButton = findViewById(R.id.camera_button);
         cameraButton.setOnClickListener(new View.OnClickListener() {
@@ -35,10 +47,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void dispatchTakePictureIntent() {
-        // カメラアプリを起動して写真を撮影するインテントを作成
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-            // インテントを実行して写真を撮影
             startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
         }
     }
@@ -49,20 +59,38 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
             Bundle extras = data.getExtras();
             if (extras != null) {
-                // 撮影された写真のBitmapを取得
                 Bitmap imageBitmap = (Bitmap) extras.get("data");
                 if (imageBitmap != null) {
-                    // SubActivityに画像を渡す
-                    Intent intent = new Intent(this, SubActivity.class);
-                    // 画像をバイト配列に変換して渡す
-                    ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                    imageBitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
-                    byte[] byteArray = stream.toByteArray();
-                    intent.putExtra("imageByteArray", byteArray);
-                    startActivity(intent);
+
+
+                    File directory = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+                    File imageFile = new File(directory, "my_image.jpg");
+                    String imagePath = imageFile.getAbsolutePath();
+                    try (FileOutputStream fos = new FileOutputStream(imageFile)) {
+                        imageBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+                        fos.flush();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    //timeInputsから入力されたデータを取得
+                    String[] timeData = new String[7];
+                    for (int i = 0; i < 7; i++) {
+                        timeData[i] = timeInputs[i].getText().toString();
+                    }
+
+                    Intent subIntent = new Intent(this, SubActivity.class);
+                    subIntent.putExtra("imageFilePath", imagePath); // 画像ファイルのパス
+                    subIntent.putExtra("timeData", timeData); // 入力データ
+                    startActivity(subIntent);
                 }
             }
         }
     }
-}
 
+    private Bitmap rotateBitmap(Bitmap source, float angle) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(angle);
+        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
+    }
+}
